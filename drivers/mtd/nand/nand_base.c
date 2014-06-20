@@ -3485,6 +3485,16 @@ static void nand_decode_ext_id(struct mtd_info *mtd, struct nand_chip *chip,
 			mtd->oobsize = 32 * mtd->writesize >> 9;
 		}
 
+		/*
+		 * Samsung E-die SLC NAND doesn't support partial writes
+		 * anymore. The only way to distinguish this die-revision
+		 * is by checking bits 0 and 1 of id_data[4], which seem
+		 * to indicate feature size (previous => 00, 21nm => 01).
+		 */
+		if (id_data[0] == NAND_MFR_SAMSUNG && nand_is_slc(chip) &&
+				(id_data[4] & 0x03) /* 21nm or newer */) {
+			chip->options |= NAND_NO_SUBPAGE_WRITE;
+		}
 	}
 }
 
