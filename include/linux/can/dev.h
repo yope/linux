@@ -64,6 +64,27 @@ struct can_priv {
 #endif
 };
 
+struct can_rx_fifo {
+	struct net_device *dev;
+
+	unsigned int low_first;
+	unsigned int high_first;
+	unsigned int high_last;		/* not needed during runtime */
+
+	u32 (*read_pending)(struct can_rx_fifo *rx_fifo);
+	void (*mailbox_enable_mask)(struct can_rx_fifo *rx_fifo, u32 mask);
+	void (*mailbox_disable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
+	void (*mailbox_receive)(struct can_rx_fifo *rx_fifo, unsigned int mb);
+
+	u32 mask_low;
+	u32 mask_high;
+	u32 active;
+
+	unsigned int next;
+
+	bool inc;
+};
+
 /*
  * get_can_dlc(value) - helper macro to cast a given data length code (dlc)
  * to __u8 and ensure the dlc value to be max. 8 bytes.
@@ -104,6 +125,10 @@ u8 can_dlc2len(u8 can_dlc);
 
 /* map the sanitized data length to an appropriate data length code */
 u8 can_len2dlc(u8 len);
+
+int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo);
+int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota);
+u32 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo);
 
 struct net_device *alloc_candev(int sizeof_priv, unsigned int echo_skb_max);
 void free_candev(struct net_device *dev);
