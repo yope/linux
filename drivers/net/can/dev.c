@@ -290,20 +290,20 @@ static unsigned int can_rx_fifo_inc(struct can_rx_fifo *fifo, unsigned int *val)
 		return (*val)--;
 }
 
-static u32 can_rx_fifo_mask_low(struct can_rx_fifo *fifo)
+static u64 can_rx_fifo_mask_low(struct can_rx_fifo *fifo)
 {
 	if (fifo->inc)
-		return ~0U >> (32 + fifo->low_first - fifo->high_first) << fifo->low_first;
+		return ~0LLU >> (64 + fifo->low_first - fifo->high_first) << fifo->low_first;
 	else
-		return ~0U >> (32 - fifo->low_first + fifo->high_first) << (fifo->high_first + 1);
+		return ~0LLU >> (64 - fifo->low_first + fifo->high_first) << (fifo->high_first + 1);
 }
 
-static u32 can_rx_fifo_mask_high(struct can_rx_fifo *fifo)
+static u64 can_rx_fifo_mask_high(struct can_rx_fifo *fifo)
 {
 	if (fifo->inc)
-		return ~0U >> (32 + fifo->high_first - fifo->high_last - 1) << fifo->high_first;
+		return ~0LLU >> (64 + fifo->high_first - fifo->high_last - 1) << fifo->high_first;
 	else
-		return ~0U >> (32 - fifo->high_first + fifo->high_last - 1) << fifo->high_last;
+		return ~0LLU >> (64 - fifo->high_first + fifo->high_last - 1) << fifo->high_last;
 }
 
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
@@ -332,7 +332,7 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 
 	netdev_dbg(dev, "%s: low_first=%d, high_first=%d, high_last=%d\n", __func__,
 		   fifo->low_first, fifo->high_first, fifo->high_last);
-	netdev_dbg(dev, "%s: mask_low=0x%08x mask_high=0x%08x\n", __func__,
+	netdev_dbg(dev, "%s: mask_low=0x%016llx mask_high=0x%016llx\n", __func__,
 		   fifo->mask_low, fifo->mask_high);
 
 	return 0;
@@ -342,14 +342,14 @@ EXPORT_SYMBOL_GPL(can_rx_fifo_add);
 int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota)
 {
 	int received = 0;
-	u32 pending;
+	u64 pending;
 	unsigned int mb;
 
 	do {
 		pending = fifo->read_pending(fifo);
 		pending &= fifo->active;
 
-		if (!(pending & BIT(fifo->next))) {
+		if (!(pending & BIT_ULL(fifo->next))) {
 			/*
 			 * Wrap around only if:
 			 * - we are in the upper group and
@@ -357,7 +357,7 @@ int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota)
 			 *   of the lower group.
 			 */
 			if (can_rx_fifo_ge(fifo, fifo->next, fifo->high_first) &&
-			    (pending & BIT(fifo->low_first))) {
+			    (pending & BIT_ULL(fifo->low_first))) {
 				fifo->next = fifo->low_first;
 
 				fifo->active |= fifo->mask_high;
@@ -370,7 +370,7 @@ int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota)
 		mb = can_rx_fifo_inc(fifo, &fifo->next);
 
 		/* disable mailbox */
-		fifo->active &= ~BIT(mb);
+		fifo->active &= ~BIT_ULL(mb);
 		fifo->mailbox_disable(fifo, mb);
 
 		fifo->mailbox_receive(fifo, mb);
@@ -388,7 +388,7 @@ int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota)
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_poll);
 
-u32 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo)
+u64 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo)
 {
 	return fifo->active;
 }

@@ -71,14 +71,14 @@ struct can_rx_fifo {
 	unsigned int high_first;
 	unsigned int high_last;		/* not needed during runtime */
 
-	u32 (*read_pending)(struct can_rx_fifo *rx_fifo);
-	void (*mailbox_enable_mask)(struct can_rx_fifo *rx_fifo, u32 mask);
+	u64 (*read_pending)(struct can_rx_fifo *rx_fifo);
+	void (*mailbox_enable_mask)(struct can_rx_fifo *rx_fifo, u64 mask);
 	void (*mailbox_disable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
 	void (*mailbox_receive)(struct can_rx_fifo *rx_fifo, unsigned int mb);
 
-	u32 mask_low;
-	u32 mask_high;
-	u32 active;
+	u64 mask_low;
+	u64 mask_high;
+	u64 active;
 
 	unsigned int next;
 
@@ -128,7 +128,7 @@ u8 can_len2dlc(u8 len);
 
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo);
 int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota);
-u32 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo);
+u64 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo);
 
 struct net_device *alloc_candev(int sizeof_priv, unsigned int echo_skb_max);
 void free_candev(struct net_device *dev);
