@@ -71,18 +71,25 @@ struct can_rx_fifo {
 	unsigned int high_first;
 	unsigned int high_last;		/* not needed during runtime */
 
-	u64 (*read_pending)(struct can_rx_fifo *rx_fifo);
 	void (*mailbox_enable_mask)(struct can_rx_fifo *rx_fifo, u64 mask);
-	void (*mailbox_disable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
-	void (*mailbox_receive)(struct can_rx_fifo *rx_fifo, unsigned int mb);
+	void (*mailbox_enable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
+	unsigned int (*mailbox_move_to_buffer)(struct can_rx_fifo *rx_fifo,
+		struct can_frame *frame, unsigned int mb);
 
 	u64 mask_low;
 	u64 mask_high;
 	u64 active;
 
-	unsigned int next;
+	unsigned int high_first;
 
 	bool inc;
+
+	struct can_frame *ring;
+	struct can_frame overflow;
+	size_t ring_size;
+	unsigned int ring_head;
+	unsigned int ring_tail;
+	struct napi_struct napi;
 };
 
 /*
@@ -127,8 +134,10 @@ u8 can_dlc2len(u8 can_dlc);
 u8 can_len2dlc(u8 len);
 
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo);
-int can_rx_fifo_poll(struct can_rx_fifo *fifo, int quota);
-u64 can_rx_fifo_get_active_mb_mask(const struct can_rx_fifo *fifo);
+int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo);
+void can_rx_fifo_napi_enable(struct can_rx_fifo *fifo);
+void can_rx_fifo_napi_disable(struct can_rx_fifo *fifo);
+void can_rx_fifo_del(struct can_rx_fifo *fifo);
 
 struct net_device *alloc_candev(int sizeof_priv, unsigned int echo_skb_max);
 void free_candev(struct net_device *dev);
