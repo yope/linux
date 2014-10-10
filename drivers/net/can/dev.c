@@ -351,6 +351,9 @@ static int can_rx_fifo_napi_poll(struct napi_struct *napi, int quota)
 	unsigned int tail;
 
 restart_poll:
+	if (work_done < quota)
+		work_done += fifo->poll_can_state(fifo);
+
 	/* handle mailboxes */
 	head = smp_load_acquire(&fifo->ring_head);
 	tail = fifo->ring_tail;
@@ -362,14 +365,19 @@ restart_poll:
 		smp_store_release(&fifo->ring_tail, tail);
 	}
 
+	if (work_done < quota)
+		work_done += fifo->poll_bus_error(fifo);
+
 	if (work_done < quota) {
 		napi_complete(napi);
 
 		/* Check if there was another interrupt */
 		head = smp_load_acquire(&fifo->ring_head);
-		if ((CIRC_CNT(head, tail, fifo->ring_size) >= 1) &&
-		    napi_reschedule(&fifo->napi))
+		if (((CIRC_CNT(head, tail, fifo->ring_size) >= 1) ||
+		    fifo->poll_errors) && napi_reschedule(&fifo->napi)) {
+			fifo->poll_errors = false;
 			goto restart_poll;
+		}
 	}
 
 	can_led_event(fifo->dev, CAN_LED_EVENT_RX);
@@ -395,7 +403,8 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 	}
 
 	if (!fifo->mailbox_enable_mask || !fifo->mailbox_move_to_buffer ||
-	    !fifo->mailbox_enable)
+	    !fifo->mailbox_enable || !fifo->poll_bus_error ||
+	    !fifo->poll_can_state)
 		return -EINVAL;
 
 	/* Make ring-buffer a sensible size that is a power of 2 */
@@ -414,6 +423,7 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 	fifo->mask_low = can_rx_fifo_mask_low(fifo);
 	fifo->mask_high = can_rx_fifo_mask_high(fifo);
 	fifo->high_first = false;
+	fifo->poll_errors = false;
 	fifo->active = fifo->mask_low | fifo->mask_high;
 	fifo->mailbox_enable_mask(fifo, fifo->active);
 
@@ -504,6 +514,13 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 	return received;
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_irq_offload);
+
+void can_rx_fifo_irq_error(struct can_rx_fifo *fifo)
+{
+	fifo->poll_errors = true;
+	can_rx_fifo_napi_schedule(fifo);
+}
+EXPORT_SYMBOL_GPL(can_rx_fifo_irq_error);
 
 void can_rx_fifo_napi_enable(struct can_rx_fifo *fifo)
 {

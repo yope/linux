@@ -75,12 +75,15 @@ struct can_rx_fifo {
 	void (*mailbox_enable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
 	unsigned int (*mailbox_move_to_buffer)(struct can_rx_fifo *rx_fifo,
 		struct can_frame *frame, unsigned int mb);
+	unsigned int (*poll_can_state)(struct can_rx_fifo *rx_fifo);
+	unsigned int (*poll_bus_error)(struct can_rx_fifo *rx_fifo);
 
 	u64 mask_low;
 	u64 mask_high;
 	u64 active;
 
 	unsigned int high_first;
+	bool poll_errors;
 
 	bool inc;
 
@@ -91,6 +94,11 @@ struct can_rx_fifo {
 	unsigned int ring_tail;
 	struct napi_struct napi;
 };
+
+static inline void can_rx_fifo_napi_schedule(struct can_rx_fifo *fifo)
+{
+	napi_schedule(&fifo->napi);
+}
 
 /*
  * get_can_dlc(value) - helper macro to cast a given data length code (dlc)
@@ -135,6 +143,7 @@ u8 can_len2dlc(u8 len);
 
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo);
 int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo);
+void can_rx_fifo_irq_error(struct can_rx_fifo *fifo);
 void can_rx_fifo_napi_enable(struct can_rx_fifo *fifo);
 void can_rx_fifo_napi_disable(struct can_rx_fifo *fifo);
 void can_rx_fifo_reset(struct can_rx_fifo *fifo);
