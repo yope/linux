@@ -302,17 +302,21 @@ static unsigned int can_rx_fifo_inc(struct can_rx_fifo *fifo, unsigned int *val)
 static u64 can_rx_fifo_mask_low(struct can_rx_fifo *fifo)
 {
 	if (fifo->inc)
-		return ~0LLU >> (64 + fifo->low_first - fifo->high_first) << fifo->low_first;
+		return ~0LLU >> (64 + fifo->low_first - fifo->high_first)
+			     << fifo->low_first;
 	else
-		return ~0LLU >> (64 - fifo->low_first + fifo->high_first) << (fifo->high_first + 1);
+		return ~0LLU >> (64 - fifo->low_first + fifo->high_first)
+			     << (fifo->high_first + 1);
 }
 
 static u64 can_rx_fifo_mask_high(struct can_rx_fifo *fifo)
 {
 	if (fifo->inc)
-		return ~0LLU >> (64 + fifo->high_first - fifo->high_last - 1) << fifo->high_first;
+		return ~0LLU >> (64 + fifo->high_first - fifo->high_last - 1)
+			     << fifo->high_first;
 	else
-		return ~0LLU >> (64 - fifo->high_first + fifo->high_last - 1) << fifo->high_last;
+		return ~0LLU >> (64 - fifo->high_first + fifo->high_last - 1)
+			     << fifo->high_last;
 }
 
 static int can_rx_fifo_read_napi_frame(struct can_rx_fifo *fifo, int index)
