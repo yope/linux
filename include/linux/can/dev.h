@@ -142,7 +142,9 @@ u8 can_dlc2len(u8 can_dlc);
 u8 can_len2dlc(u8 len);
 
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo);
+int can_rx_fifo_add_simple(struct net_device *dev, struct can_rx_fifo *fifo);
 int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo);
+int can_rx_fifo_irq_offload_simple(struct can_rx_fifo *fifo);
 void can_rx_fifo_irq_error(struct can_rx_fifo *fifo);
 void can_rx_fifo_napi_enable(struct can_rx_fifo *fifo);
 void can_rx_fifo_napi_disable(struct can_rx_fifo *fifo);

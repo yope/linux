@@ -385,10 +385,32 @@ restart_poll:
 	return work_done;
 }
 
+static int can_rx_fifo_init_ring(struct net_device *dev,
+		struct can_rx_fifo *fifo, unsigned int weight)
+{
+	fifo->dev = dev;
+
+	/* Make ring-buffer a sensible size that is a power of 2 */
+	fifo->ring_size = (2 << fls(weight));
+	fifo->ring = kzalloc(sizeof(struct can_frame) * fifo->ring_size,
+			     GFP_KERNEL);
+	if (!fifo->ring)
+		return -ENOMEM;
+
+	fifo->ring_head = fifo->ring_tail = 0;
+
+	/* Take care of NAPI handling */
+	netif_napi_add(dev, &fifo->napi, can_rx_fifo_napi_poll, weight);
+
+	fifo->poll_errors = false;
+
+	return 0;
+}
+
 int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 {
 	unsigned int weight;
-	fifo->dev = dev;
+	int ret;
 
 	if ((fifo->low_first < fifo->high_first) &&
 	    (fifo->high_first < fifo->high_last)) {
@@ -407,17 +429,9 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 	    !fifo->poll_can_state)
 		return -EINVAL;
 
-	/* Make ring-buffer a sensible size that is a power of 2 */
-	fifo->ring_size = (2 << fls(weight));
-	fifo->ring = kzalloc(sizeof(struct can_frame) * fifo->ring_size,
-			     GFP_KERNEL);
-	if (!fifo->ring)
-		return -ENOMEM;
-
-	fifo->ring_head = fifo->ring_tail = 0;
-
-	/* Take care of NAPI handling */
-	netif_napi_add(dev, &fifo->napi, can_rx_fifo_napi_poll, weight);
+	ret = can_rx_fifo_init_ring(dev, fifo, weight);
+	if (ret)
+		return ret;
 
 	/* init variables */
 	fifo->mask_low = can_rx_fifo_mask_low(fifo);
@@ -435,6 +449,26 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_add);
+
+int can_rx_fifo_add_simple(struct net_device *dev, struct can_rx_fifo *fifo)
+{
+	int ret;
+
+	if (!fifo->mailbox_move_to_buffer || !fifo->poll_bus_error ||
+	    !fifo->poll_can_state)
+		return -EINVAL;
+
+	ret = can_rx_fifo_init_ring(dev, fifo, 64);
+	if (ret)
+		return ret;
+
+	/* init variables */
+	fifo->mask_low = 0;
+	fifo->mask_high = 0;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(can_rx_fifo_add_simple);
 
 static unsigned int can_rx_fifo_offload_if_full(struct can_rx_fifo *fifo, unsigned int n)
 {
@@ -514,6 +548,23 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 	return received;
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_irq_offload);
+
+int can_rx_fifo_irq_offload_simple(struct can_rx_fifo *fifo)
+{
+	unsigned int received = 0;
+	unsigned int ret;
+
+	do {
+		ret = can_rx_fifo_offload_if_full(fifo, 0);
+		received += ret;
+	} while (ret);
+
+	if (received)
+		can_rx_fifo_napi_schedule(fifo);
+
+	return received;
+}
+EXPORT_SYMBOL_GPL(can_rx_fifo_irq_offload_simple);
 
 void can_rx_fifo_irq_error(struct can_rx_fifo *fifo)
 {
