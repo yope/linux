@@ -69,7 +69,7 @@ struct can_rx_fifo {
 
 	unsigned int low_first;
 	unsigned int high_first;
-	unsigned int high_last;		/* not needed during runtime */
+	unsigned int high_last;
 
 	void (*mailbox_enable_mask)(struct can_rx_fifo *rx_fifo, u64 mask);
 	void (*mailbox_enable)(struct can_rx_fifo *rx_fifo, unsigned int mb);
