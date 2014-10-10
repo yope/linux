@@ -489,8 +489,17 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 		fifo->high_first = true;
 	}
 
-	if (received)
-		napi_schedule(&fifo->napi);
+	if (received) {
+		can_rx_fifo_napi_schedule(fifo);
+	} else {
+		/*
+		 * This should only happen if the CAN conroller was reset, but
+		 * can_rx_fifo_reset() was not called. BUG();
+		 */
+		netdev_warn(fifo->dev, "%s: No messages found,"
+			    " RX-FIFO out of sync?\n", __func__);
+		BUG();
+	}
 
 	return received;
 }
@@ -507,6 +516,13 @@ void can_rx_fifo_napi_disable(struct can_rx_fifo *fifo)
 	napi_disable(&fifo->napi);
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_napi_disable);
+
+void can_rx_fifo_reset(struct can_rx_fifo *fifo)
+{
+	fifo->second_first = false;
+	fifo->active = fifo->mask_low | fifo->mask_high;
+}
+EXPORT_SYMBOL_GPL(can_rx_fifo_reset);
 
 void can_rx_fifo_del(struct can_rx_fifo *fifo)
 {
