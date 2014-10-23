@@ -82,7 +82,7 @@ struct can_rx_fifo {
 	u64 mask_high;
 	u64 active;
 
-	unsigned int high_first;
+	unsigned int scan_high_first;
 	bool poll_errors;
 
 	bool inc;

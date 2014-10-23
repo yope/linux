@@ -436,7 +436,7 @@ int can_rx_fifo_add(struct net_device *dev, struct can_rx_fifo *fifo)
 	/* init variables */
 	fifo->mask_low = can_rx_fifo_mask_low(fifo);
 	fifo->mask_high = can_rx_fifo_mask_high(fifo);
-	fifo->high_first = false;
+	fifo->scan_high_first = false;
 	fifo->poll_errors = false;
 	fifo->active = fifo->mask_low | fifo->mask_high;
 	fifo->mailbox_enable_mask(fifo, fifo->active);
@@ -495,7 +495,7 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 	unsigned int ret;
 	unsigned int received = 0;
 
-	if (fifo->high_first) {
+	if (fifo->scan_high_first) {
 		for (i = fifo->high_first;
 		     can_rx_fifo_le(fifo, i, fifo->high_last);
 		     can_rx_fifo_inc(fifo, &i)) {
@@ -521,7 +521,7 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 		netdev_warn(fifo->dev, "%s: RX order cannot be guaranteed."
 			" (count=%d)\n", __func__, i);
 
-	fifo->high_first = false;
+	fifo->scan_high_first = false;
 
 	/* No EMPTY MB in first half? */
 	if (can_rx_fifo_ge(fifo, i, fifo->high_first)) {
@@ -530,7 +530,7 @@ int can_rx_fifo_irq_offload(struct can_rx_fifo *fifo)
 		fifo->mailbox_enable_mask(fifo, fifo->active);
 
 		/* Next time we need to check the second half first */
-		fifo->high_first = true;
+		fifo->scan_high_first = true;
 	}
 
 	if (received) {
@@ -587,7 +587,7 @@ EXPORT_SYMBOL_GPL(can_rx_fifo_napi_disable);
 
 void can_rx_fifo_reset(struct can_rx_fifo *fifo)
 {
-	fifo->second_first = false;
+	fifo->scan_high_first = false;
 	fifo->active = fifo->mask_low | fifo->mask_high;
 }
 EXPORT_SYMBOL_GPL(can_rx_fifo_reset);
