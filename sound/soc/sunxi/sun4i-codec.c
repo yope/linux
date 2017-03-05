@@ -1338,6 +1338,44 @@ static struct snd_soc_card *sun8i_h3_codec_create_card(struct device *dev)
 	return card;
 };
 
+static struct snd_soc_card *sun8i_v3s_codec_create_card(struct device *dev)
+{
+	struct snd_soc_card *card;
+	int ret;
+
+	card = devm_kzalloc(dev, sizeof(*card), GFP_KERNEL);
+	if (!card)
+		return ERR_PTR(-ENOMEM);
+
+	aux_dev.codec_of_node = of_parse_phandle(dev->of_node,
+						 "allwinner,codec-analog-controls",
+						 0);
+	if (!aux_dev.codec_of_node) {
+		dev_err(dev, "Can't find analog controls for codec.\n");
+		return ERR_PTR(-EINVAL);
+	};
+
+	card->dai_link = sun4i_codec_create_link(dev, &card->num_links);
+	if (!card->dai_link)
+		return ERR_PTR(-ENOMEM);
+
+	card->dev		= dev;
+	card->name		= "V3s Audio Codec";
+	card->dapm_widgets	= sun6i_codec_card_dapm_widgets;
+	card->num_dapm_widgets	= ARRAY_SIZE(sun6i_codec_card_dapm_widgets);
+	card->dapm_routes	= sun8i_codec_card_routes;
+	card->num_dapm_routes	= ARRAY_SIZE(sun8i_codec_card_routes);
+	card->aux_dev		= &aux_dev;
+	card->num_aux_devs	= 1;
+	card->fully_routed	= true;
+
+	ret = snd_soc_of_parse_audio_routing(card, "allwinner,audio-routing");
+	if (ret)
+		dev_warn(dev, "failed to parse audio-routing: %d\n", ret);
+
+	return card;
+};
+
 static const struct regmap_config sun4i_codec_regmap_config = {
 	.reg_bits	= 32,
 	.reg_stride	= 4,
@@ -1371,6 +1409,13 @@ static const struct regmap_config sun8i_h3_codec_regmap_config = {
 	.reg_stride	= 4,
 	.val_bits	= 32,
 	.max_register	= SUN8I_H3_CODEC_ADC_DBG,
+};
+
+static const struct regmap_config sun8i_v3s_codec_regmap_config = {
+	.reg_bits	= 32,
+	.reg_stride	= 4,
+	.val_bits	= 32,
+	.max_register	= SUN6I_CODEC_HMIC_DATA,
 };
 
 struct sun4i_codec_quirks {
@@ -1421,6 +1466,16 @@ static const struct sun4i_codec_quirks sun8i_a23_codec_quirks = {
 	.has_reset	= true,
 };
 
+static const struct sun4i_codec_quirks sun8i_v3s_codec_quirks = {
+	.regmap_config	= &sun8i_v3s_codec_regmap_config,
+	.codec		= &sun8i_a23_codec_codec,
+	.create_card	= sun8i_v3s_codec_create_card,
+	.reg_adc_fifoc	= REG_FIELD(SUN6I_CODEC_ADC_FIFOC, 0, 31),
+	.reg_dac_txdata	= SUN8I_H3_CODEC_DAC_TXDATA,
+	.reg_adc_rxdata	= SUN6I_CODEC_ADC_RXDATA,
+	.has_reset	= true,
+};
+
 static const struct sun4i_codec_quirks sun8i_h3_codec_quirks = {
 	.regmap_config	= &sun8i_h3_codec_regmap_config,
 	/*
@@ -1456,6 +1511,10 @@ static const struct of_device_id sun4i_codec_of_match[] = {
 	{
 		.compatible = "allwinner,sun8i-h3-codec",
 		.data = &sun8i_h3_codec_quirks,
+	},
+	{
+		.compatible = "allwinner,sun8i-v3s-codec",
+		.data = &sun8i_v3s_codec_quirks,
 	},
 	{}
 };
