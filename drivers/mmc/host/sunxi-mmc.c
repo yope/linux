@@ -476,10 +476,15 @@ static void sunxi_mmc_dump_errinfo(struct sunxi_mmc_host *host)
 	struct mmc_command *cmd = host->mrq->cmd;
 	struct mmc_data *data = host->mrq->data;
 
-	/* For some cmds timeout is normal with sd/mmc cards */
-	if ((host->int_sum & SDXC_INTERRUPT_ERROR_BIT) ==
-		SDXC_RESP_TIMEOUT && (cmd->opcode == SD_IO_SEND_OP_COND ||
-				      cmd->opcode == SD_IO_RW_DIRECT))
+	/*
+	 * Reading timeout is usually normal, especially when doing
+	 * card-polling with "broken-cd" in device tree.
+	 * If do not mask it, the RTO error message will flood the console
+	 * and even hide useful error messages.
+	 *
+	 * Some SDIO commands will also normally timeout with non-SDIO cards.
+	 */
+	if ((host->int_sum & SDXC_INTERRUPT_ERROR_BIT) == SDXC_RESP_TIMEOUT)
 		return;
 
 	dev_err(mmc_dev(host->mmc),
