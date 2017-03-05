@@ -245,6 +245,14 @@
 				drive-strength = <30>;
 				bias-pull-up;
 			};
+
+			mmc1_pins: mmc1@0 {
+				pins = "PG0", "PG1", "PG2", "PG3",
+				       "PG4", "PG5";
+				function = "mmc1";
+				drive-strength = <30>;
+				bias-pull-up;
+			};
 		};
 
 		timer@01c20c00 {
