@@ -150,6 +150,14 @@
 #define EMAC_DSC_TX_LENGTH_ERR		BIT(14)
 #define EMAC_DSC_TX_HEADER_ERR		BIT(16)
 
+#ifdef CONFIG_SUN8I_EMAC_USE_DWMAC_SUN8I_DT
+#define EMAC_RES_RST "stmmaceth"
+#define EMAC_RES_CLK "stmmaceth"
+#else
+#define EMAC_RES_RST "ahb"
+#define EMAC_RES_CLK "ahb"
+#endif
+
 /* struct emac_variant - Describe an emac variant of sun8i-emac
  * @default_syscon_value: Default value of the syscon EMAC register
  * The default_syscon_value is also used for powering down the PHY
@@ -2145,14 +2153,14 @@ static int sun8i_emac_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	priv->ahb_clk = devm_clk_get(&pdev->dev, "ahb");
+	priv->ahb_clk = devm_clk_get(&pdev->dev, EMAC_RES_CLK);
 	if (IS_ERR(priv->ahb_clk)) {
 		ret = PTR_ERR(priv->ahb_clk);
 		dev_err(&pdev->dev, "Cannot get AHB clock err=%d\n", ret);
 		goto probe_err;
 	}
 
-	priv->rst_mac = devm_reset_control_get_optional(&pdev->dev, "ahb");
+	priv->rst_mac = devm_reset_control_get_optional(&pdev->dev, EMAC_RES_RST);
 	if (IS_ERR(priv->rst_mac)) {
 		ret = PTR_ERR(priv->rst_mac);
 		if (ret == -EPROBE_DEFER)

@@ -46,4 +46,10 @@ config SUN8I_EMAC
           To compile this driver as a module, choose M here.  The module
           will be called sun8i-emac.
 
+config SUN8I_EMAC_USE_DWMAC_SUN8I_DT
+	bool "Use dwmac-sun8i bindings"
+	depends on SUN8I_EMAC && !DWMAC_SUN8I
+	---help---
+	  Use DT bindings from dwmac-sun8i.
+
 endif # NET_VENDOR_ALLWINNER
