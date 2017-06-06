@@ -529,7 +529,7 @@ static void sun8i_emac_set_macaddr(struct sun8i_emac_priv *priv,
 		return;
 	}
 
-	dev_info(priv->dev, "device MAC address slot %d %pM", index, addr);
+	dev_dbg(priv->dev, "device MAC address slot %d %pM", index, addr);
 
 	v = (addr[5] << 8) | addr[4];
 	if (index > 0)
