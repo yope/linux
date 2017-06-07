@@ -229,6 +229,7 @@ pixcir  PIXCIR MICROELECTRONICS Co., Ltd
 plathome	Plat'Home Co., Ltd.
 plda	PLDA
 powervr	PowerVR (deprecated, use img)
+prt	Protonic Holland b.v.
 pulsedlight	PulsedLight, Inc
 qca	Qualcomm Atheros, Inc.
 qcom	Qualcomm Technologies, Inc
