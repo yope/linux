@@ -51,6 +51,7 @@ Devices and I/O
    dcdbas
    vduse
    isapnp
+   motion
 
 Everything else
 ===============
